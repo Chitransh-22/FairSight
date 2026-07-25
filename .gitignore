@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual Environment
+venv/
+.env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# Python caches
+.pytest_cache/
+.mypy_cache/
+
+# System
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+
+# Models (if downloaded)
+models/
+
+# Logs
+*.log
+
+# Build
+dist/
+build/
+
+# PDF Reports generated
+reports/
+
+# Temporary
+temp/
