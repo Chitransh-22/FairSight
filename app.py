@@ -5,7 +5,7 @@ from llm_utils import get_ai_explanation
 from analysis_pipeline import run_analysis
 from ui import (render_sidebar, render_dataset_overview, 
                 render_configuration, render_ai_summary, render_downloads)
-from report_generator import build_full_report
+from report_generator import (build_full_report, generate_pdf_report)
 
 st.set_page_config(
     page_title="AI Bias Detection System",
@@ -91,9 +91,11 @@ if df is not None:
                 llm_response
             )
 
+            pdf_report = generate_pdf_report(ai_summary)
+
             render_ai_summary(ai_summary)
             
-            render_downloads(analysis, ai_summary)
+            render_downloads(analysis, ai_summary, pdf_report)
 
             st.session_state.ai_summary = ai_summary
 

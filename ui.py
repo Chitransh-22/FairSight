@@ -249,7 +249,7 @@ def render_ai_summary(ai_summary: str):
         st.markdown(ai_summary)
 
 
-def render_downloads(analysis: AnalysisResult, ai_summary):
+def render_downloads(analysis: AnalysisResult, ai_summary, pdf_report):
     """
     Render download buttons for fairness analysis.
     """
@@ -306,9 +306,8 @@ def render_downloads(analysis: AnalysisResult, ai_summary):
     with col3:
 
         st.download_button(
-            label="⬇ AI Report",
-            data=ai_summary,
-            file_name="ai_fairness_report.md",
-            mime="text/markdown",
-            width="stretch"
+            label="📄 Download AI Report (PDF)",
+            data=pdf_report,
+            file_name="AI_Fairness_Report.pdf",
+            mime="application/pdf"
         )

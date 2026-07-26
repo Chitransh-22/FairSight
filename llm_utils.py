@@ -38,9 +38,7 @@ Never assume anything beyond the provided information.
 --------------------------------------------------
 
 Dataset Domain:
-○ Auto Detect
-○ Ask User
-○ General Dataset
+{dataset_domain}
 
 Protected Attribute:
 {protected_col}
@@ -51,48 +49,47 @@ Privileged Group:
 Disadvantaged Group:
 {disadvantaged}
 
-Disparate Impact Before:
-{before:.3f}
-
-Disparate Impact After:
-{after:.3f}
-
-Outcome Gap:
-{gap:.3f}
-
-Outcome Rates Before:
-
-{rates_before}
-
-Outcome Rates After:
-
-{rates_after}
-
 --------------------------------------------------
 
 FAIRNESS METRICS
 
-Before
+Before Mitigation
 
-DI:
-{before}
+Disparate Impact (DI):
+{before:.3f}
 
-SPD:
-{spd_before}
-
-Consistency:
-{consistency_before}
-
-After
-
-DI:
-{after}
-
-SPD:
-{spd_after}
+Statistical Parity Difference (SPD):
+{spd_before:.3f}
 
 Consistency:
-{consistency_after}
+{consistency_before:.3f}
+
+Outcome Gap:
+{gap_before:.3f}
+
+Outcome Rates
+
+{rates_before}
+
+--------------------------------------------------
+
+After Mitigation
+
+Disparate Impact (DI):
+{after:.3f}
+
+Statistical Parity Difference (SPD):
+{spd_after:.3f}
+
+Consistency:
+{consistency_after:.3f}
+
+Outcome Gap:
+{gap_after:.3f}
+
+Outcome Rates
+
+{rates_after}
 
 --------------------------------------------------
 
@@ -110,11 +107,28 @@ After
 
 RULES
 
-DI closer to 1 indicates better fairness.
+Interpret the supplied metrics exactly as follows:
 
-SPD closer to 0 indicates better fairness.
+• Disparate Impact (DI)
+    - Closer to 1.0 = Better fairness
+    - Moving toward 1.0 = Improvement
+    - Moving away from 1.0 = Worsening
 
-Higher consistency indicates more stable predictions.
+• Statistical Parity Difference (SPD)
+    - Closer to 0 = Better fairness
+    - Moving toward 0 = Improvement
+    - Moving away from 0 = Worsening
+
+• Consistency
+    - Higher values indicate more stable predictions.
+    - Lower values indicate less stable predictions.
+
+When evaluating mitigation:
+
+- Compare BEFORE and AFTER metrics.
+- Clearly state whether fairness improved, worsened, or remained unchanged.
+- Never claim fairness worsened if DI moved closer to 1 AND SPD moved closer to 0 unless there is strong contradictory evidence.
+- If different metrics disagree, explain the disagreement instead of choosing one metric.
 
 Use only the supplied information.
 
@@ -124,36 +138,12 @@ Never contradict the supplied metrics.
 
 If evidence is insufficient, explicitly state that.
 
---------------------------------------------------
+Before writing the report, verify:
 
-Only generate the following Markdown sections:
-
-## LLM Interpretation
-
-Explain what the fairness metrics indicate.
-
-## Possible Causes
-
-Suggest likely reasons for the observed bias based ONLY on the supplied metrics.
-
-## Effectiveness of Mitigation
-
-Evaluate whether mitigation improved fairness.
-
-## Risks
-
-Discuss remaining fairness risks.
-
-## Recommendations
-
-Suggest practical improvements.
-
-## Limitations
-
-Mention any limitations of the current analysis.
-
-Do not repeat the metric values.
-Do not invent facts.
+✓ DI interpretation is correct.
+✓ SPD interpretation is correct.
+✓ Mitigation conclusion matches the supplied metrics.
+✓ Do not contradict any metric.
 """)
 
 def format_rates(rates, label_map):
@@ -176,6 +166,10 @@ def build_prompt(context, group_info, metrics_before, metrics_after, rates_befor
     unpriv = group_info["unprivileged_value"]
     label_map = group_info["mapping"]
 
+    gap_before = abs(rates_before[priv] - rates_before[unpriv])
+
+    gap_after = abs(rates_after[priv] - rates_after[unpriv])
+
     return prompt_template.format(
 
         dataset_domain=context["domain"],
@@ -195,10 +189,8 @@ def build_prompt(context, group_info, metrics_before, metrics_after, rates_befor
         consistency_before=metrics_before["consistency"],
         consistency_after=metrics_after["consistency"],
 
-        gap=abs(
-            rates_before[priv]
-            - rates_before[unpriv]
-        ),
+        gap_before=gap_before,
+        gap_after=gap_after,
 
         rates_before=format_rates(
             rates_before,
@@ -220,28 +212,13 @@ def get_ai_explanation(analysis: AnalysisResult):
     rates_before = analysis.rates_before
     rates_after = analysis.rates_after
 
-    print("========== AI DEBUG ==========")
-
-    print(type(context))
-    print(type(group_info))
-    print(type(metrics_before))
-    print(type(metrics_after))
-    print(type(rates_before))
-    print(type(rates_after))
-
     prompt = build_prompt(
         context, group_info,
         metrics_before, metrics_after,
         rates_before, rates_after)
-    
-    print(len(prompt))
 
     print("Calling Ollama...")
 
     response = chain.invoke(prompt)
-
-    print("========== RESPONSE ==========")
-    print(repr(response))
-    print("==============================")
 
     return response
