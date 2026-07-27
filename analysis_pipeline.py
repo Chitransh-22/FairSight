@@ -1,8 +1,8 @@
 from bias_utils import (validate_dataset, validate_target,
                         validate_protected, preprocess_data,
                         detect_dataset_context, get_group_info,
-                        prepare_dataset, measure_bias,
-                        mitigate_bias, group_outcome_rates)
+                        prepare_dataset, measure_bias, mitigate_bias, 
+                        group_outcome_rates, get_verdict)
 from models import AnalysisResult
 
 
@@ -105,6 +105,13 @@ def run_analysis(df,target_col,protected_col) -> AnalysisResult:
         use_weights=True
     )
 
+    verdict = get_verdict(
+        metrics_before,
+        metrics_after,
+        rates_before,
+        rates_after
+    )
+
     return AnalysisResult(
     processed_df=processed_df,
     context=context,
@@ -114,5 +121,6 @@ def run_analysis(df,target_col,protected_col) -> AnalysisResult:
     metrics_before=metrics_before,
     metrics_after=metrics_after,
     rates_before=rates_before,
-    rates_after=rates_after
+    rates_after=rates_after,
+    verdict=verdict
 )

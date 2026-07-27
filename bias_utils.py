@@ -1010,3 +1010,130 @@ def detect_dataset_context(df):
         len(df.select_dtypes(exclude="number").columns)
 
 }
+
+def get_verdict(metrics_before, metrics_after, rates_before, rates_after):
+
+    di_before = metrics_before["disparate_impact"]
+    di_after = metrics_after["disparate_impact"]
+
+    spd_before = metrics_before["statistical_parity_difference"]
+    spd_after = metrics_after["statistical_parity_difference"]
+
+    gap_before = abs(
+        max(rates_before.values()) - min(rates_before.values())
+    )
+
+    gap_after = abs(
+        max(rates_after.values()) - min(rates_after.values())
+    )
+
+    EXCELLENT_DI = 0.95
+    GOOD_DI = 0.80
+    MODERATE_DI = 0.70
+    LIMITED_DI = 0.50
+
+
+    # DEFINING VERDICT VARIABLES
+    fairness_decreased = (
+        di_after < di_before
+        or abs(spd_after) > abs(spd_before)
+        or gap_after > gap_before
+    )
+
+    excellent = (
+        di_after >= EXCELLENT_DI
+        and abs(spd_after) <= 0.02
+        and gap_after <= 0.02
+    )
+
+    good = (
+        GOOD_DI <= di_after < EXCELLENT_DI
+        and abs(spd_after) <= 0.05
+        and gap_after <= 0.05
+    )
+
+    moderate = (
+        MODERATE_DI <= di_after < GOOD_DI
+        and abs(spd_after) <= 0.10
+        and gap_after <= 0.10
+    )
+
+    improved = (
+        di_after > di_before
+        or abs(spd_after) < abs(spd_before)
+        or gap_after < gap_before
+    )
+
+    limited_improvement = (
+        improved
+        and LIMITED_DI <= di_after < MODERATE_DI
+        and abs(spd_after) <= 0.20
+        and gap_after <= 0.20
+    )
+
+    # USING GUARD CLAUSE TECHNIQUE
+
+    if fairness_decreased:
+        return {
+            "status": "decreased",
+            "title": "🔴 Fairness Decreased",
+            "message": (
+                "Bias mitigation reduced overall fairness. "
+                "Review the preprocessing and mitigation strategy."
+            ),
+            "color": "error"
+        }
+
+    if excellent:
+        return {
+            "status": "excellent",
+            "title": "🟢 Excellent Fairness Achieved",
+            "message": (
+                "Bias mitigation was highly successful. "
+                "Fairness metrics indicate near-perfect parity between groups."
+            ),
+            "color": "success"
+        }
+
+    if good:
+        return {
+            "status": "good",
+            "title": "🟢 Good Fairness Achieved",
+            "message": (
+                "Fairness improved significantly. "
+                "Minor disparities remain."
+            ),
+            "color": "success"
+        }
+
+    if moderate:
+        return {
+            "status": "moderate",
+            "title": "🟡 Moderate Fairness",
+            "message": (
+                "Bias mitigation reduced disparities, "
+                "but additional improvements are recommended."
+            ),
+            "color": "warning"
+        }
+
+    if limited_improvement:
+        return {
+            "status": "limited",
+            "title": "🟠 Limited Improvement",
+            "message": (
+                "Fairness improved after mitigation, "
+                "however noticeable bias still remains."
+            ),
+            "color": "warning"
+        }
+
+    return {
+        "status": "poor",
+        "title": "🔴 High Bias Detected",
+        "message": (
+            "Significant fairness issues remain. "
+            "Additional mitigation techniques are recommended."
+        ),
+        "color": "error"
+    }

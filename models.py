@@ -22,3 +22,5 @@ class AnalysisResult:
     rates_before: dict
 
     rates_after: dict
+
+    verdict: dict

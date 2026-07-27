@@ -234,6 +234,31 @@ def render_configuration(df):
     return target_col, protected_col, analyze
 
 
+def render_verdict(analysis: AnalysisResult):
+
+    verdict = analysis.verdict
+
+    st.header("⚖ Fairness Verdict")
+
+    if verdict["color"] == "success":
+        st.success(
+            f"### {verdict['title']}\n\n"
+            f"{verdict['message']}"
+        )
+
+    elif verdict["color"] == "warning":
+        st.warning(
+            f"### {verdict['title']}\n\n"
+            f"{verdict['message']}"
+        )
+
+    else:
+        st.error(
+            f"### {verdict['title']}\n\n"
+            f"{verdict['message']}"
+        )
+
+
 def render_ai_summary(ai_summary: str):
     """
     Display AI-generated fairness explanation.
