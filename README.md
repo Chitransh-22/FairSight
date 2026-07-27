@@ -6,7 +6,7 @@
 
 ## 📌 Overview
 
-FairSight is an interactive Streamlit dashboard that helps data scientists, ML engineers, and researchers audit their datasets for fairness issues. It automatically detects the dataset's likely business domain, measures **Disparate Impact**, **Statistical Parity Difference**, and **Consistency** across protected groups (e.g. gender, race, age), applies **Reweighing** mitigation via IBM's AIF360, and generates a plain-language fairness explanation using a **locally hosted LLM (Ollama)** — no external API keys or cloud calls required.
+FairSight is an interactive Streamlit dashboard that helps data scientists, ML engineers, and researchers audit their datasets for fairness issues. It automatically detects the dataset's likely business domain, measures **Disparate Impact**, **Statistical Parity Difference**, and **Consistency** across protected groups (e.g. gender, race, age), applies **Reweighing** mitigation via IBM's AIF360, computes an automated **rule-based fairness verdict**, and generates a plain-language fairness explanation using a **locally hosted LLM (Ollama)** — no external API keys or cloud calls required. The full audit trail can be exported as a downloadable **PDF report**.
 
 ---
 
@@ -20,7 +20,7 @@ FairSight is an interactive Streamlit dashboard that helps data scientists, ML e
 ├── bias_utils.py            # Core fairness utilities (validation, preprocessing, AIF360 wrappers)
 ├── models.py                # AnalysisResult dataclass — typed container for pipeline outputs
 ├── llm_utils.py              # Builds the fairness prompt and calls the local Ollama LLM
-├── report_generator.py       # Assembles the final Markdown fairness report
+├── report_generator.py       # Assembles the Markdown report and renders it to a downloadable PDF
 ├── visualization.py           # Plotly dashboard: KPI cards, comparison charts, outcome plots
 ├── requirements.txt
 └── README.md
@@ -32,7 +32,8 @@ The Streamlit entry point. Responsibilities include:
 - Rendering the sidebar and upload widget
 - Managing session state (`df`, `analysis`, `ai_summary`)
 - Triggering the fairness pipeline (`run_analysis`) when the user clicks **Analyze Bias**
-- Rendering the dashboard, AI explanation, and download section
+- Rendering the dashboard, the fairness verdict banner, the AI explanation, and the download section
+- Generating the downloadable PDF report (`generate_pdf_report`) from the built Markdown report
 - Catching and surfacing pipeline errors via `st.error` / `st.exception`
 
 ### `dataset_loader.py`
@@ -47,8 +48,9 @@ All non-dashboard UI components:
 - `render_sidebar()` — branding, tech stack, supported formats, and workflow summary
 - `render_dataset_overview(df)` — row/column counts, missing values, dtype breakdown, and a full data preview/inspection expander
 - `render_configuration(df)` — target column and protected attribute selectors, plus the **Analyze Bias** button
+- `render_verdict(analysis)` — displays the automated fairness verdict banner (`analysis.verdict`), color-coded as success / warning / error based on the verdict's `color` field
 - `render_ai_summary(ai_summary)` — displays the generated AI fairness explanation
-- `render_downloads(analysis, ai_summary)` — download buttons for the mitigated dataset (CSV), metrics (JSON), and the full AI report (Markdown)
+- `render_downloads(analysis, ai_summary, pdf_report)` — download buttons for the mitigated dataset (CSV), the raw metrics (JSON), and the full AI fairness report as a **PDF**
 
 ### `analysis_pipeline.py`
 Coordinates the full fairness workflow via `run_analysis(df, target_col, protected_col)`:
@@ -62,7 +64,8 @@ Coordinates the full fairness workflow via `run_analysis(df, target_col, protect
 8. Applies **Reweighing** mitigation
 9. Measures fairness metrics **after** mitigation
 10. Computes weighted group outcome rates **after** mitigation
-11. Returns everything bundled in an `AnalysisResult`
+11. Computes an automated fairness **verdict** via `get_verdict()`, based on the before/after metrics and rates
+12. Returns everything bundled in an `AnalysisResult` (including the `verdict`)
 
 ### `bias_utils.py`
 Core fairness utility module wrapping pandas, scikit-learn, and AIF360 logic:
@@ -83,9 +86,10 @@ Core fairness utility module wrapping pandas, scikit-learn, and AIF360 logic:
 | `get_group_info(df, protected_col)` | Resolves privileged/unprivileged values and human-readable labels for the protected attribute |
 | `map_group_value(protected_col, value)` | Maps encoded values back to friendly labels (e.g. Male/Female, Majority/Others, Older/Younger) |
 | `detect_dataset_context(df)` | Infers the likely business domain (Healthcare, Finance, HR, Education, Insurance, E-commerce, Marketing, Cybersecurity, Retail, Manufacturing, or General) from column-name keyword matching, with a confidence score |
+| `get_verdict(metrics_before, metrics_after, rates_before, rates_after)` | Applies rule-based thresholds on DI, SPD, and outcome gap to classify the mitigation outcome into a single fairness verdict (see [⚖ Fairness Verdict System](#-fairness-verdict-system) below) |
 
 ### `models.py`
-Defines `AnalysisResult`, the typed dataclass that carries every pipeline output — processed data, context, group info, both AIF360 datasets, and metrics/rates before and after mitigation — through the rest of the app.
+Defines `AnalysisResult`, the typed dataclass that carries every pipeline output — processed data, context, group info, both AIF360 datasets, metrics/rates before and after mitigation, and the automated **verdict** dict — through the rest of the app.
 
 ### `llm_utils.py`
 Generates the natural-language fairness explanation using a **local Ollama LLM** (default model: `gemma3:4b`, served at `http://127.0.0.1:11434`) via LangChain:
@@ -94,7 +98,9 @@ Generates the natural-language fairness explanation using a **local Ollama LLM**
 - Returns the generated Markdown explanation to the app
 
 ### `report_generator.py`
-Combines the deterministic analysis results and the LLM explanation into a single downloadable Markdown report (`build_full_report`), including dataset summary, before/after metrics, outcome rates, and the AI interpretation.
+Produces the final downloadable fairness report in two stages:
+- `build_full_report(analysis, llm_text)` — combines the deterministic analysis results and the LLM explanation into a single Markdown report, including dataset summary, before/after metrics, outcome rates, and the AI interpretation
+- `generate_pdf_report(markdown_report)` — renders that Markdown report into a formatted PDF using **ReportLab**, converting headers (`#`, `##`, `###`) and bullet lists into styled PDF paragraphs, and returns the PDF as raw bytes for download
 
 ### `visualization.py`
 Renders the Plotly-based fairness dashboard:
@@ -166,10 +172,14 @@ Click **🚀 Analyze Bias**. The pipeline will:
 4. Measure **Disparate Impact**, **Statistical Parity Difference**, and **Consistency** before mitigation
 5. Apply **Reweighing** to rebalance instance weights
 6. Re-measure all metrics after mitigation
-7. Display the interactive dashboard and generate a local LLM fairness explanation
+7. Compute an automated fairness **verdict** from the before/after metrics
+8. Display the interactive dashboard, the verdict banner, and generate a local LLM fairness explanation
 
-**Step 5 — Download Results**
-Download the mitigated dataset (CSV), the raw metrics (JSON), and the full AI-generated report (Markdown).
+**Step 5 — Review the Fairness Verdict**
+A color-coded banner summarizes the overall outcome of the mitigation — see [⚖ Fairness Verdict System](#-fairness-verdict-system) below.
+
+**Step 6 — Download Results**
+Download the mitigated dataset (CSV), the raw metrics (JSON), and the full AI-generated report as a **PDF**.
 
 ---
 
@@ -204,17 +214,43 @@ The absolute difference in positive outcome rates between the privileged and unp
 
 ---
 
+## ⚖ Fairness Verdict System
+
+After computing metrics before and after mitigation, `get_verdict()` in `bias_utils.py` applies a set of rule-based thresholds to classify the overall outcome into a single, human-readable verdict — shown as a color-coded banner at the top of the results.
+
+**Inputs considered:**
+- Disparate Impact (DI) after mitigation
+- Statistical Parity Difference (SPD) after mitigation
+- Outcome **gap** — the spread between the highest and lowest group outcome rates
+- Whether each of these moved in a favorable or unfavorable direction relative to *before* mitigation
+
+**Verdict levels** (evaluated in priority order):
+
+| Verdict | Trigger condition | Banner |
+|---|---|---|
+| 🔴 Fairness Decreased | DI after < DI before, **or** \|SPD after\| > \|SPD before\|, **or** gap after > gap before | Error |
+| 🟢 Excellent Fairness Achieved | DI after ≥ 0.95, \|SPD after\| ≤ 0.02, gap after ≤ 0.02 | Success |
+| 🟢 Good Fairness Achieved | 0.80 ≤ DI after < 0.95, \|SPD after\| ≤ 0.05, gap after ≤ 0.05 | Success |
+| 🟡 Moderate Fairness | 0.70 ≤ DI after < 0.80, \|SPD after\| ≤ 0.10, gap after ≤ 0.10 | Warning |
+| 🟠 Limited Improvement | Metrics improved overall **and** 0.50 ≤ DI after < 0.70, \|SPD after\| ≤ 0.20, gap after ≤ 0.20 | Warning |
+| 🔴 High Bias Detected | None of the above conditions are met | Error |
+
+The check for **Fairness Decreased** always runs first as a guard clause — if mitigation made any of the three signals (DI, SPD, or gap) worse, the verdict is flagged as a regression regardless of the absolute metric values. Each verdict returns a `status`, `title`, `message`, and a Streamlit-compatible `color` (`success` / `warning` / `error`) that `render_verdict()` in `ui.py` uses to render the appropriate banner.
+
+---
+
 ## 🤖 AI Explanation
 
-After analysis, FairSight sends the computed fairness metrics to a **local LLM served via Ollama** (default: `gemma3:4b`) to generate a plain-language explanation covering:
-1. What the fairness metrics indicate
-2. Possible causes of the observed bias
-3. Whether Reweighing mitigation was effective
-4. Remaining fairness risks
-5. Practical recommendations
-6. Limitations of the current analysis
+After analysis, FairSight sends the computed fairness metrics — before and after mitigation, including the outcome gap — to a **local LLM served via Ollama** (default: `gemma3:4b`) to generate a plain-language explanation covering what the metrics indicate, likely causes of the observed bias, whether mitigation was effective, remaining risks, and practical recommendations.
 
-The prompt explicitly instructs the model to reason **only from the supplied metrics** and to avoid inventing facts, since everything runs locally without external grounding.
+The prompt embeds explicit interpretation rules so the model can't misread the numbers:
+- DI closer to 1.0, and moving toward 1.0, means improved fairness
+- SPD closer to 0, and moving toward 0, means improved fairness
+- The model must compare before/after values directly and state clearly whether fairness improved, worsened, or stayed the same
+- It is instructed not to claim fairness worsened if DI moved closer to 1 **and** SPD moved closer to 0, unless there is strong contradictory evidence, and to explain rather than paper over any disagreement between metrics
+- It must reason **only from the supplied metrics** and never invent facts, since everything runs locally without external grounding
+
+This keeps the LLM's narrative explanation aligned with the deterministic rule-based verdict from `get_verdict()`, even though the two are computed independently.
 
 ---
 
@@ -224,6 +260,7 @@ The prompt explicitly instructs the model to reason **only from the supplied met
 - Only supports **binary protected attributes**. Multi-valued or continuous attributes are collapsed to two groups (majority vs. others, or a median split).
 - Mitigation uses only **Reweighing**. Other strategies (e.g. adversarial debiasing, post-processing) are not yet implemented.
 - Domain detection (`detect_dataset_context`) is a keyword-based heuristic on column names — it is a best-effort classification, not a guarantee.
+- The fairness **verdict** (`get_verdict`) uses fixed, hand-tuned thresholds on DI, SPD, and outcome gap — these are reasonable defaults, not universal or legally binding fairness standards, and should be adapted to your domain's risk tolerance.
 - Bias metrics reflect patterns in the **uploaded dataset** — they do not guarantee fairness of a deployed model on unseen data.
 - The AI explanation depends on the quality and availability of the local Ollama model and should be reviewed critically.
 
@@ -239,6 +276,7 @@ The prompt explicitly instructs the model to reason **only from the supplied met
 | [Pandas](https://pandas.pydata.org) | Data manipulation |
 | [Plotly](https://plotly.com/python/) | Interactive dashboard charts |
 | [Ollama](https://ollama.com) + [LangChain](https://www.langchain.com) | Local LLM-powered fairness explanations |
+| [ReportLab](https://www.reportlab.com/opensource/) | Renders the Markdown fairness report into a downloadable PDF |
 
 ---
 
