@@ -1,0 +1,258 @@
+/* ============================================================
+   FairSight Theme
+   Version : 1.0
+   Author  : Chitransh Panchal
+============================================================ */
+
+
+/* ------------------------------------------------------------
+   Google Font
+------------------------------------------------------------ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+html,
+body,
+[class*="css"] {
+    font-family: "Inter", sans-serif;
+}
+
+
+/* ------------------------------------------------------------
+   Main App
+------------------------------------------------------------ */
+
+.stApp {
+
+    background:
+        radial-gradient(circle at top,
+            #1d2340 0%,
+            #0E1117 55%,
+            #0B0E14 100%);
+
+}
+
+
+/* ------------------------------------------------------------
+   Headers
+------------------------------------------------------------ */
+
+h1,h2,h3{
+
+    font-weight:700;
+
+    letter-spacing:.3px;
+
+    color:white;
+
+}
+
+h4,h5,h6{
+
+    color:#D7E2F0;
+
+}
+
+
+/* ------------------------------------------------------------
+   Horizontal Divider
+------------------------------------------------------------ */
+
+hr{
+
+    border:none;
+
+    border-top:1px solid rgba(255,255,255,.08);
+
+}
+
+
+/* ------------------------------------------------------------
+   Buttons
+------------------------------------------------------------ */
+
+.stButton > button{
+
+    width:100%;
+
+    border-radius:14px;
+
+    border:none;
+
+    padding:.75rem;
+
+    font-weight:600;
+
+    transition:.25s ease;
+
+    background:#4F7CFF;
+
+    color:white;
+
+}
+
+
+.stButton > button:hover{
+
+    transform:translateY(-2px);
+
+    box-shadow:0 12px 30px rgba(79,124,255,.35);
+
+}
+
+
+/* ------------------------------------------------------------
+   Download Buttons
+------------------------------------------------------------ */
+
+.stDownloadButton > button{
+
+    width:100%;
+
+    border-radius:14px;
+
+    border:1px solid rgba(255,255,255,.08);
+
+    background:#181D28;
+
+    color:white;
+
+    transition:.25s;
+
+}
+
+
+.stDownloadButton > button:hover{
+
+    background:#222A39;
+
+    border-color:#4F7CFF;
+
+}
+
+
+/* ------------------------------------------------------------
+   Select Boxes
+------------------------------------------------------------ */
+
+div[data-baseweb="select"]{
+
+    border-radius:12px;
+
+}
+
+
+/* ------------------------------------------------------------
+   Metrics
+------------------------------------------------------------ */
+
+div[data-testid="metric-container"]{
+
+    background:#181D28;
+
+    border:1px solid rgba(255,255,255,.05);
+
+    border-radius:18px;
+
+    padding:15px;
+
+    transition:.25s;
+
+}
+
+
+div[data-testid="metric-container"]:hover{
+
+    border-color:#4F7CFF;
+
+    transform:translateY(-3px);
+
+}
+
+
+/* ------------------------------------------------------------
+   Containers
+------------------------------------------------------------ */
+
+div[data-testid="stVerticalBlock"]{
+
+    border-radius:18px;
+
+}
+
+
+/* ------------------------------------------------------------
+   Expanders
+------------------------------------------------------------ */
+
+details{
+
+    border-radius:15px;
+
+    overflow:hidden;
+
+    border:1px solid rgba(255,255,255,.05);
+
+}
+
+
+/* ------------------------------------------------------------
+   Dataframe
+------------------------------------------------------------ */
+
+div[data-testid="stDataFrame"]{
+
+    border-radius:16px;
+
+    overflow:hidden;
+
+}
+
+
+/* ------------------------------------------------------------
+   Sidebar
+------------------------------------------------------------ */
+
+section[data-testid="stSidebar"]{
+
+    background:#111722;
+
+    border-right:1px solid rgba(255,255,255,.06);
+
+}
+
+
+/* ------------------------------------------------------------
+   Success
+------------------------------------------------------------ */
+
+div[data-baseweb="notification"]{
+
+    border-radius:16px;
+
+}
+
+
+/* ------------------------------------------------------------
+   Scrollbar
+------------------------------------------------------------ */
+
+::-webkit-scrollbar{
+
+    width:10px;
+
+}
+
+::-webkit-scrollbar-thumb{
+
+    background:#394B63;
+
+    border-radius:50px;
+
+}
+
+::-webkit-scrollbar-thumb:hover{
+
+    background:#4F7CFF;
+
+}

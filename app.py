@@ -6,6 +6,7 @@ from analysis_pipeline import run_analysis
 from ui import (render_sidebar, render_dataset_overview, render_verdict,
                 render_configuration, render_ai_summary, render_downloads)
 from report_generator import (build_full_report, generate_pdf_report)
+from theme import load_css
 
 st.set_page_config(
     page_title="AI Bias Detection System",
@@ -13,6 +14,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+load_css()
 
 st.title("⚖️ AI Bias Detection System")
 
