@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import json
+from typing import Callable
 from CORE.models import AnalysisResult
 
 def render_sidebar():
@@ -273,22 +274,78 @@ def render_ai_summary(ai_summary: str):
     with st.expander("View AI Report", expanded=True):
         st.markdown(ai_summary)
 
-def render_export_card(title, description, status, download_button):
-# pending this export card for now. and completing the export centre and later on adding in it.
+def render_export_card(title:str, description:str, status:str, body_renderer:Callable):
+    with st.container(border=True):
 
-def render_export_center():
+        st.subheader(title)
+
+        st.write(description)
+
+        st.markdown(f"🟢 **{status}**")
+
+        st.write("")
+
+        body_renderer()
+
+def render_export_center(analysis, ai_summary, pdf_report):
     st.header("📦 Export Centre")
 
+    # -----------------------------
+    #         AI REPORT
+    # -----------------------------
+
+    def render_pdf_button():
+
+        st.download_button(
+            "⬇ Download PDF",
+            data=pdf_report,
+            file_name="AI_Fairness_Report.pdf",
+            mime="application/pdf",
+            use_container_width=True
+        )
+
     render_export_card(
-        title="AI Report",
-        description="Comprehensive fairness audit report with AI explanation.",
-        status="",
-        download_button=""
+        title="📄 AI Fairness Report",
+        description="Comprehensive fairness audit with AI explanation and fairness metrics.",
+        status="Ready",
+        body_renderer=render_pdf_button
     )
 
-    render_export_card()
+    st.write("")
 
-    render_export_card()
+    # -----------------------------
+    #         DATASET
+    # -----------------------------
+    def render_dataset_buttons():
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            st.download_button(
+                "⬇ CSV",
+                data="",
+                file_name="Mitigated_Dataset.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+
+        with col2:
+
+            st.download_button(
+                "⬇ JSON",
+                data="{}",
+                file_name="Mitigated_Dataset.json",
+                mime="application/json",
+                use_container_width=True
+            )
+
+    render_export_card(
+        title="📁 Mitigated Dataset",
+        description="Dataset after IBM AIF360 Reweighing.",
+        status="Ready",
+        body_renderer=render_dataset_buttons
+    ) 
 
 def render_downloads(analysis: AnalysisResult, ai_summary, pdf_report):
-    render_export_center()
+    render_export_center(analysis, ai_summary, pdf_report)
