@@ -3,10 +3,12 @@ from CORE.dataset_loader import render_upload
 from UI.visualization import plot_dashboard
 from CORE.llm_utils import get_ai_explanation
 from CORE.analysis_pipeline import run_analysis
-from UI.ui import (render_sidebar, render_dataset_overview, render_verdict,
+from UI.ui import (render_dataset_overview, render_verdict,
                 render_configuration, render_ai_summary, render_downloads)
 from CORE.report_generator import (build_full_report, generate_pdf_report)
 from UI.theme import load_css
+from app_state import (initialize_state, update_status)
+from sidebar import render_sidebar
 
 st.set_page_config(
     page_title="AI Bias Detection System",
@@ -26,6 +28,8 @@ AIF360, Reweighing and Local LLM-powered fairness explanations.
 
 st.divider()
 
+initialize_state()
+
 render_sidebar()
 
 defaults = {
@@ -41,11 +45,13 @@ for key, value in defaults.items():
 df = render_upload()
 
 if df is not None:
+    update_status("dataset_loaded") 
     render_dataset_overview(df)
 
     target_col, protected_col, analyze = render_configuration(df)
 
     if analyze:
+        update_status("dataset_configured")
 
         try:
 
@@ -57,6 +63,8 @@ if df is not None:
 
             if analysis is None:
                 st.stop()
+
+            update_status("fairness_analysis_completed")
 
             st.session_state.analysis = analysis
 
@@ -96,11 +104,15 @@ if df is not None:
                 llm_response
             )
 
+            update_status("ai_report_generated")
+
             pdf_report = generate_pdf_report(ai_summary)
 
             render_ai_summary(ai_summary)
             
             render_downloads(analysis, ai_summary, pdf_report)
+
+            update_status("export_ready")
 
             st.session_state.ai_summary = ai_summary
 

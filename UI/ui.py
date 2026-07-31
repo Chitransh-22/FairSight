@@ -1,75 +1,7 @@
 import streamlit as st
 import pandas as pd
-import json
 from typing import Callable
 from CORE.models import AnalysisResult
-
-def render_sidebar():
-    """
-    Render the application sidebar.
-    """
-
-    with st.sidebar:
-
-        st.title("⚖ AI Fairness Auditor")
-
-        st.markdown("---")
-
-        st.markdown(
-            """
-Detect, analyze and mitigate bias in machine learning datasets
-using **IBM AIF360**, **Reweighing**, and **Local LLM-powered**
-fairness explanations.
-"""
-        )
-
-        st.markdown("---")
-
-        st.subheader("🛠 Technology Stack")
-
-        st.markdown(
-            """
-- 🐍 Python
-- 📊 Streamlit
-- ⚖ IBM AIF360
-- 🤖 Ollama + Qwen
-- 🧠 LangChain
-- 📈 Plotly
-- 🐼 Pandas
-"""
-        )
-
-        st.markdown("---")
-
-        st.subheader("📂 Supported Formats")
-
-        st.markdown(
-            """
-- CSV (.csv)
-- JSON (.json)
-"""
-        )
-
-        st.markdown("---")
-
-        st.subheader("📋 Workflow")
-
-        st.markdown(
-            """
-1. Upload Dataset
-2. Configure Analysis
-3. Detect Bias
-4. Mitigate Bias
-5. Visualize Results
-6. Generate AI Report
-7. Download Results
-"""
-        )
-
-        st.markdown("---")
-
-        st.caption("Version 1.0")
-
 
 
 def render_dataset_overview(df):
