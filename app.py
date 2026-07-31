@@ -1,11 +1,11 @@
 import streamlit as st
 from CORE.dataset_loader import render_upload
 from UI.visualization import plot_dashboard
-from LLM.llm_utils import get_ai_explanation
+from CORE.llm_utils import get_ai_explanation
 from CORE.analysis_pipeline import run_analysis
 from UI.ui import (render_sidebar, render_dataset_overview, render_verdict,
                 render_configuration, render_ai_summary, render_downloads)
-from Reports.report_generator import (build_full_report, generate_pdf_report)
+from CORE.report_generator import (build_full_report, generate_pdf_report)
 from UI.theme import load_css
 
 st.set_page_config(
