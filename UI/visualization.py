@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from models import AnalysisResult
+from CORE.models import AnalysisResult
 
 def plot_kpi_cards(metrics_before, metrics_after):
 

@@ -1,12 +1,12 @@
 import streamlit as st
-from dataset_loader import render_upload
-from visualization import plot_dashboard
-from llm_utils import get_ai_explanation
-from analysis_pipeline import run_analysis
-from ui import (render_sidebar, render_dataset_overview, render_verdict,
+from CORE.dataset_loader import render_upload
+from UI.visualization import plot_dashboard
+from LLM.llm_utils import get_ai_explanation
+from CORE.analysis_pipeline import run_analysis
+from UI.ui import (render_sidebar, render_dataset_overview, render_verdict,
                 render_configuration, render_ai_summary, render_downloads)
-from report_generator import (build_full_report, generate_pdf_report)
-from theme import load_css
+from Reports.report_generator import (build_full_report, generate_pdf_report)
+from UI.theme import load_css
 
 st.set_page_config(
     page_title="AI Bias Detection System",

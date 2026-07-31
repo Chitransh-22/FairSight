@@ -1,9 +1,9 @@
-from bias_utils import (validate_dataset, validate_target,
+from CORE.bias_utils import (validate_dataset, validate_target,
                         validate_protected, preprocess_data,
                         detect_dataset_context, get_group_info,
                         prepare_dataset, measure_bias, mitigate_bias, 
                         group_outcome_rates, get_verdict)
-from models import AnalysisResult
+from CORE.models import AnalysisResult
 
 
 def run_analysis(df,target_col,protected_col) -> AnalysisResult:

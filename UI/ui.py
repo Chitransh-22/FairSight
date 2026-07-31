@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import json
-from models import AnalysisResult
+from CORE.models import AnalysisResult
 
 def render_sidebar():
     """
@@ -273,66 +273,22 @@ def render_ai_summary(ai_summary: str):
     with st.expander("View AI Report", expanded=True):
         st.markdown(ai_summary)
 
+def render_export_card(title, description, status, download_button):
+# pending this export card for now. and completing the export centre and later on adding in it.
+
+def render_export_center():
+    st.header("📦 Export Centre")
+
+    render_export_card(
+        title="AI Report",
+        description="Comprehensive fairness audit report with AI explanation.",
+        status="",
+        download_button=""
+    )
+
+    render_export_card()
+
+    render_export_card()
 
 def render_downloads(analysis: AnalysisResult, ai_summary, pdf_report):
-    """
-    Render download buttons for fairness analysis.
-    """
-
-    st.header("📥 Download Results")
-
-    col1, col2, col3 = st.columns(3)
-
-    # --------------------------------------------------
-    # Download Mitigated Dataset
-    # --------------------------------------------------
-
-    with col1:
-
-        mitigated_df = analysis.mitigated_dataset.convert_to_dataframe()[0]
-
-        csv = mitigated_df.to_csv(index=False).encode("utf-8")
-
-        st.download_button(
-            label="⬇ Mitigated Dataset",
-            data=csv,
-            file_name="mitigated_dataset.csv",
-            mime="text/csv",
-            width="stretch"
-        )
-
-    # --------------------------------------------------
-    # Download Metrics JSON
-    # --------------------------------------------------
-
-    with col2:
-
-        metrics = {
-            "context": analysis.context,
-            "group_info": analysis.group_info,
-            "metrics_before": analysis.metrics_before,
-            "metrics_after": analysis.metrics_after,
-            "rates_before": analysis.rates_before,
-            "rates_after": analysis.rates_after,
-        }
-
-        st.download_button(
-            label="⬇ Metrics JSON",
-            data=json.dumps(metrics, indent=4,default=str),
-            file_name="fairness_metrics.json",
-            mime="application/json",
-            width="stretch"
-        )
-
-    # --------------------------------------------------
-    # Download AI Report
-    # --------------------------------------------------
-
-    with col3:
-
-        st.download_button(
-            label="📄 Download AI Report (PDF)",
-            data=pdf_report,
-            file_name="AI_Fairness_Report.pdf",
-            mime="application/pdf"
-        )
+    render_export_center()
