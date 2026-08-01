@@ -8,7 +8,7 @@ from UI.ui import (render_dataset_overview, render_verdict,
 from CORE.report_generator import (build_full_report, generate_pdf_report)
 from UI.theme import load_css
 from app_state import (initialize_state, update_status)
-from sidebar import render_sidebar
+from UI.sidebar import render_sidebar
 
 st.set_page_config(
     page_title="AI Bias Detection System",
