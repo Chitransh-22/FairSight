@@ -3,9 +3,9 @@ import streamlit as st
 
 DEFAULT_STATUS = {
     "dataset_loaded": False,
-    "configuration_complete": False,
-    "analysis_complete": False,
-    "report_generated": False,
+    "dataset_configured": False,
+    "fairness_analysis_completed": False,
+    "ai_report_generated": False,
     "export_ready": False,
 }
 

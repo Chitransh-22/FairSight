@@ -43,9 +43,9 @@ def render_analysis_status():
 
     stages = [
         ("dataset_loaded", "Dataset Loaded"),
-        ("configuration_complete", "Configuration Complete"),
-        ("analysis_complete", "Analysis Complete"),
-        ("report_generated", "Report Generated"),
+        ("dataset_configured", "Configuration Complete"),
+        ("fairness_analysis_completed", "Analysis Complete"),
+        ("ai_report_generated", "Report Generated"),
         ("export_ready", "Ready to Export"),
     ]
 

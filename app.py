@@ -30,8 +30,6 @@ st.divider()
 
 initialize_state()
 
-render_sidebar()
-
 defaults = {
 
     "df": None,
@@ -112,11 +110,13 @@ if df is not None:
             
             render_downloads(analysis, ai_summary, pdf_report)
 
-            update_status("export_ready")
-
             st.session_state.ai_summary = ai_summary
+
+            update_status("export_ready")
 
         except Exception as e:
 
             st.error("Analysis failed.")
             st.exception(e)
+
+render_sidebar()
