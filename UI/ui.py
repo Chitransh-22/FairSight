@@ -226,6 +226,13 @@ def render_export_center(analysis, ai_summary, pdf_report):
     #         AI REPORT
     # -----------------------------
 
+    # Converted once
+    mitigated_df = analysis.mitigated_dataset.convert_to_dataframe()[0]
+
+    # Preparing Export formats once
+    mitigated_csv = mitigated_df.to_csv(index=False)
+    mitigated_json = mitigated_df.to_json(orient="records", indent=4)
+
     def render_pdf_button():
 
         st.download_button(
@@ -256,7 +263,7 @@ def render_export_center(analysis, ai_summary, pdf_report):
 
             st.download_button(
                 "⬇ CSV",
-                data="",
+                data=mitigated_csv,
                 file_name="Mitigated_Dataset.csv",
                 mime="text/csv",
                 use_container_width=True
@@ -266,7 +273,7 @@ def render_export_center(analysis, ai_summary, pdf_report):
 
             st.download_button(
                 "⬇ JSON",
-                data="{}",
+                data=mitigated_json,
                 file_name="Mitigated_Dataset.json",
                 mime="application/json",
                 use_container_width=True
