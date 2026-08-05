@@ -123,19 +123,30 @@ def plot_group_outcomes(rates_before, rates_after):
         width="stretch"
     )
 
-def plot_bias_summary(metrics_before, metrics_after):
+def plot_bias_summary(verdict):
 
-    di_before = abs( 1 - metrics_before["disparate_impact"] )
-    di_after = abs( 1 - metrics_after["disparate_impact"] )
+    color = verdict.get("color", "error")
 
-    spd_before = metrics_before["statistical_parity_difference"]
-    spd_after = metrics_after["statistical_parity_difference"]
+    if color == "success":
 
-    if (( di_after >= di_before ) and ( abs(spd_after) <= abs(spd_before) )):
-        st.success("Bias mitigation improved fairness.")
+        st.success(
+            f"### {verdict['title']}\n\n"
+            f"{verdict['message']}"
+        )
+
+    elif color == "warning":
+
+        st.warning(
+            f"### {verdict['title']}\n\n"
+            f"{verdict['message']}"
+        )
 
     else:
-        st.warning("Bias mitigation produced limited improvement.")
+
+        st.error(
+            f"### {verdict['title']}\n\n"
+            f"{verdict['message']}"
+        )
 
 
 def plot_dashboard(analysis: AnalysisResult):
@@ -144,6 +155,7 @@ def plot_dashboard(analysis: AnalysisResult):
     metrics_after = analysis.metrics_after
     rates_before = analysis.rates_before
     rates_after = analysis.rates_after
+    verdict = analysis.verdict  
 
     st.header("📊 Fairness Dashboard")
 
@@ -162,7 +174,4 @@ def plot_dashboard(analysis: AnalysisResult):
         rates_after
     )
 
-    plot_bias_summary(
-        metrics_before,
-        metrics_after
-    )
+    plot_bias_summary(verdict)
