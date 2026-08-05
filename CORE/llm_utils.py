@@ -217,8 +217,6 @@ def get_ai_explanation(analysis: AnalysisResult):
         metrics_before, metrics_after,
         rates_before, rates_after)
 
-    print("Calling Ollama...")
-
     response = chain.invoke(prompt)
 
     return response

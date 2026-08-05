@@ -5,6 +5,27 @@ from aif360.metrics import BinaryLabelDatasetMetric
 from aif360.algorithms.preprocessing import Reweighing
 from sklearn.preprocessing import LabelEncoder
 
+
+# Configuring the Mapping to help: map_group_values() and get_group_info()
+GROUP_MAPPINGS = {
+    "gender": {
+        0: "Female",
+        1: "Male"
+    },
+    "sex": {
+        0: "Female",
+        1: "Male"
+    },
+    "race": {
+        0: "Others",
+        1: "Majority"
+    },
+    "age": {
+        0: "Younger",
+        1: "Older"
+    }
+}
+
 # =========================================================
 #                     Validation
 # =========================================================
@@ -81,6 +102,25 @@ def validate_protected(df: pd.DataFrame, protected_col: str):
 #                    Encode-Target
 # =========================================================
 
+def label_encode(series: pd.Series) -> tuple[pd.Series, LabelEncoder]:
+    """
+    Label encode a pandas Series and return both the encoded
+    series and the fitted LabelEncoder.
+    """
+
+    encoder = LabelEncoder()
+
+    encoded = pd.Series(
+        data=np.asarray(
+            encoder.fit_transform(series.astype(str)),
+            dtype=np.int64
+        ),
+        index=series.index,
+        name=series.name
+    )
+
+    return encoded, encoder
+
 def encode_target(series: pd.Series) -> pd.Series:
     """
     Convert the target column into a numeric binary/encoded series.
@@ -89,23 +129,12 @@ def encode_target(series: pd.Series) -> pd.Series:
     series = series.copy()
 
     # Already binary
-    # Already binary
     if series.nunique() == 2:
 
         if not pd.api.types.is_numeric_dtype(series):
 
-            encoder = LabelEncoder()
-
-            encoded = np.asarray(
-                encoder.fit_transform(series.astype(str)),
-                dtype=np.int64
-            )
-
-            return pd.Series(
-                data=encoded,
-                index=series.index,
-                name=series.name
-            )
+            encoded, _ = label_encode(series)
+            return encoded
 
         return series.astype(int)
 
@@ -114,23 +143,12 @@ def encode_target(series: pd.Series) -> pd.Series:
 
         majority = series.value_counts().idxmax()
 
-        return (
-            series == majority
-        ).astype(int)
+        return (series == majority).astype(int)
 
     # Multi-class categorical
-    encoder = LabelEncoder()
 
-    encoded = np.asarray(
-                    encoder.fit_transform(series.astype(str)),
-                    dtype=np.int64
-                )
-
-    return pd.Series(
-        data=encoded,
-        index=series.index,
-        name=series.name
-    )
+    encoded, _ = label_encode(series)
+    return encoded
 # =========================================================
 #                    Encode-Protected
 # =========================================================
@@ -150,18 +168,8 @@ def encode_protected_attribute(series: pd.Series) -> pd.Series:
 
         if not pd.api.types.is_numeric_dtype(series):
 
-            encoder = LabelEncoder()
-
-            encoded = np.asarray(
-                encoder.fit_transform(series.astype(str)),
-                dtype=np.int64
-            )
-
-            return pd.Series(
-                data=encoded,
-                index=series.index,
-                name=series.name
-            )
+            encoded, _ = label_encode(series)
+            return encoded
 
         return series.astype(int)
 
@@ -173,9 +181,7 @@ def encode_protected_attribute(series: pd.Series) -> pd.Series:
 
         median = series.median()
 
-        return (
-            series >= median
-        ).astype(int)
+        return (series >= median).astype(int)
 
     # --------------------------------------------------
     # Multi-Class Categorical Attribute
@@ -183,9 +189,7 @@ def encode_protected_attribute(series: pd.Series) -> pd.Series:
 
     majority = series.value_counts().idxmax()
 
-    return (
-        series == majority
-    ).astype(int)
+    return (series == majority).astype(int)
 
 # =========================================================
 #                    Encode-Remaining-Features
@@ -238,12 +242,8 @@ def encode_remaining_features(
 
         if not pd.api.types.is_numeric_dtype(df[col]):
 
-            encoder = LabelEncoder()
-
-            df[col] = np.asarray(
-                encoder.fit_transform(df[col].astype(str)),
-                dtype=np.int64
-            )
+            encoded, _ = label_encode(df[col])
+            df[col] = encoded
 
     return df
 
@@ -366,11 +366,6 @@ def measure_bias(dataset, protected_col, privileged_value, unprivileged_value):
 
     )
 
-    print("DI:", metric.disparate_impact())
-    print("SPD:", metric.statistical_parity_difference())
-    print("Consistency:", metric.consistency())
-    print("Consistency type:", type(metric.consistency()))
-
     results = {
 
         "disparate_impact":
@@ -452,47 +447,11 @@ def map_group_value(protected_col, value):
     Convert encoded values into user-friendly labels.
     """
 
-    mappings = {
-
-        "gender": {
-
-            0: "Female",
-
-            1: "Male"
-
-        },
-
-        "sex": {
-
-            0: "Female",
-
-            1: "Male"
-
-        },
-
-        "race": {
-
-            0: "Others",
-
-            1: "Majority"
-
-        },
-
-        "age": {
-
-            0: "Younger",
-
-            1: "Older"
-
-        }
-
-    }
-
     col = protected_col.lower()
 
-    if col in mappings:
+    if col in GROUP_MAPPINGS:
 
-        return mappings[col].get(value, str(value))
+        return GROUP_MAPPINGS[col].get(value, str(value))
 
     return str(value)
 
@@ -539,34 +498,13 @@ def get_group_info(df, protected_col):
     # Human-readable labels
     # --------------------------------------------------
 
-    if col in ["gender", "sex"]:
-
-        mapping = {
-            0: "Female",
-            1: "Male"
-        }
-
-    elif col == "race":
-
-        mapping = {
-            0: "Others",
-            1: "Majority"
-        }
-
-    elif col == "age":
-
-        mapping = {
-            0: "Younger",
-            1: "Older"
-        }
-
-    else:
-
-        # Generic labels for any uploaded dataset
-        mapping = {
+    mapping = GROUP_MAPPINGS.get(
+        col,
+        {
             values[0]: f"{protected_col} Group 1",
             values[1]: f"{protected_col} Group 2"
         }
+    )
 
     return {
         "protected_attribute": protected_col,
