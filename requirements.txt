@@ -9,3 +9,6 @@ reportlab
 langchain
 langchain-ollama
 ollama
+aif360[AdversarialDebiasing]
+aif360[Reductions]
+aif360[inFairness]
