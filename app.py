@@ -71,34 +71,30 @@ if df is not None:
 
             update_status("dataset_configured")
 
-            analysis = run_analysis(
-                df,
-                target_col,
-                protected_col
-            )
+            try:
 
-            if analysis is not None:
-
-                update_status("fairness_analysis_completed")
+                analysis = run_analysis(
+                    df,
+                    target_col,
+                    protected_col
+                )
 
                 st.session_state.analysis = analysis
 
-                llm_response = get_ai_explanation(analysis)
-
-                ai_summary = build_full_report(
-                    analysis,
-                    llm_response
+                update_status(
+                    "fairness_analysis_completed"
                 )
 
-                pdf_report = generate_pdf_report(
-                    ai_summary
+                st.success(
+                    "✅ Fairness analysis completed successfully."
                 )
 
-                st.session_state.ai_summary = ai_summary
-                st.session_state.pdf_report = pdf_report
+            except Exception as e:
 
-                update_status("ai_report_generated")
-                update_status("export_ready")
+                st.error("❌ Analysis failed.")
+
+                st.exception(e)
+
 
     # =====================================================
     # DASHBOARD TAB
@@ -106,19 +102,19 @@ if df is not None:
 
     with dashboard_tab:
 
-        st.write("Dashboard reached")
-
-        st.write("Analysis exists:", st.session_state.analysis is not None)
-
-        st.write(st.session_state.analysis)
-
         if st.session_state.analysis is not None:
 
-            plot_dashboard(st.session_state.analysis)
+            plot_dashboard(
+                st.session_state.analysis
+            )
 
         else:
 
-            st.info("👈 Run an analysis first.")
+            st.info(
+                "👈 Run the analysis from the Dataset tab "
+                "to view the fairness dashboard."
+            )
+
 
     # =====================================================
     # AI REPORT TAB
@@ -126,17 +122,72 @@ if df is not None:
 
     with ai_tab:
 
-        if st.session_state.ai_summary:
+        if st.session_state.analysis is None:
 
-            render_ai_summary(
-                st.session_state.ai_summary
+            st.info(
+                "👈 Run the analysis first."
             )
 
         else:
 
-            st.info(
-                "👈 Generate an analysis first."
-            )
+            if st.session_state.ai_summary is None:
+
+                st.info(
+                    "The fairness analysis is ready. "
+                    "Generate the AI explanation below."
+                )
+
+                generate_ai = st.button(
+                    "🤖 Generate AI Report",
+                    type="primary",
+                    width="stretch"
+                )
+
+                if generate_ai:
+
+                    try:
+
+                        llm_response = get_ai_explanation(
+                            st.session_state.analysis
+                        )
+
+                        ai_summary = build_full_report(
+                            st.session_state.analysis,
+                            llm_response
+                        )
+
+                        pdf_report = generate_pdf_report(
+                            ai_summary
+                        )
+
+                        st.session_state.ai_summary = ai_summary
+
+                        st.session_state.pdf_report = pdf_report
+
+                        update_status(
+                            "ai_report_generated"
+                        )
+
+                        update_status(
+                            "export_ready"
+                        )
+
+                        st.rerun()
+
+                    except Exception as e:
+
+                        st.error(
+                            "❌ AI report generation failed."
+                        )
+
+                        st.exception(e)
+
+            else:
+
+                render_ai_summary(
+                    st.session_state.ai_summary
+                )
+
 
     # =====================================================
     # EXPORT TAB
@@ -145,23 +196,23 @@ if df is not None:
     with export_tab:
 
         if (
-            st.session_state.analysis
-            and st.session_state.ai_summary
+            st.session_state.analysis is not None
+            and st.session_state.ai_summary is not None
+            and st.session_state.pdf_report is not None
         ):
 
             render_downloads(
-
                 st.session_state.analysis,
-
                 st.session_state.ai_summary,
-
                 st.session_state.pdf_report
             )
 
         else:
 
             st.info(
-                "👈 Generate an analysis first."
+                "👈 Complete the analysis and AI report "
+                "before exporting."
             )
+
 
 render_sidebar()
