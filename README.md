@@ -8,7 +8,7 @@
 
 FairSight is an interactive Streamlit dashboard that helps data scientists, ML engineers, and researchers audit their datasets for fairness issues. It automatically detects the dataset's likely business domain, measures **Disparate Impact**, **Statistical Parity Difference**, and **Consistency** across protected groups (e.g. gender, race, age), applies **Reweighing** mitigation via IBM's AIF360, computes an automated **rule-based fairness verdict**, and generates a plain-language fairness explanation using a **locally hosted LLM (Ollama)** — no external API keys or cloud calls required. The full audit trail can be exported as a downloadable **PDF report**.
 
-The app is organized as a small package: core fairness logic lives under `CORE/`, all Streamlit UI lives under `UI/`, and custom styling lives under `styles/`.
+The app is organized as a small package: core fairness logic lives under `CORE/`, all Streamlit UI lives under `UI/`, and custom styling lives under `styles/`. The workflow is presented as four tabs — **Dataset → Dashboard → AI Report → Export** — so each stage can be revisited independently once it's complete.
 
 ---
 
@@ -16,9 +16,8 @@ The app is organized as a small package: core fairness logic lives under `CORE/`
 
 ```
 fairsight/
-├── app.py                 # Streamlit entry point — orchestrates the full workflow
+├── app.py                 # Streamlit entry point — tabbed workflow orchestration
 ├── app_state.py            # Tracks pipeline stage status (loaded/configured/analyzed/reported/export-ready)
-├── sidebar.py               # Renders the sidebar (project info, live status, workflow, AI engine, resources)
 ├── requirements.txt
 ├── README.md
 │
@@ -31,25 +30,33 @@ fairsight/
 │   └── report_generator.py        # Assembles the Markdown report and renders it to a downloadable PDF
 │
 ├── UI/                       # All Streamlit rendering code
-│   ├── ui.py                   # Dataset overview, configuration, verdict banner, AI summary, export centre
-│   ├── visualization.py         # Plotly dashboard: KPI cards, comparison charts, outcome plots
-│   └── theme.py                  # Injects the custom CSS theme into the Streamlit app
+│   ├── ui.py                   # Dataset overview, configuration, AI summary, export centre
+│   ├── visualization.py         # Plotly dashboard: KPI cards, comparison charts, outcome plots, verdict banner
+│   ├── theme.py                  # Injects the custom CSS theme into the Streamlit app
+│   └── sidebar.py                 # Renders the sidebar (project info, live status, workflow, AI engine, resources)
 │
 └── styles/
     └── theme.css               # Custom dark theme (fonts, gradients, buttons, cards, scrollbar)
 ```
 
-> **Note on `sidebar.py`:** as currently written, `app.py` imports it with `from sidebar import render_sidebar` (a top-level import), so `sidebar.py` needs to be importable from the project root — either kept at the root, or moved into `UI/` with the import updated to `from UI.sidebar import render_sidebar` and an `__init__.py` added to `UI/`.
-
 ### `app.py`
 The Streamlit entry point. Responsibilities include:
 - Setting page config, loading the custom CSS theme (`load_css()`), and rendering the title
-- Initializing pipeline status tracking (`initialize_state()`) and session state defaults (`df`, `analysis`)
-- Rendering the upload widget, dataset overview, and configuration form
-- Triggering the fairness pipeline (`run_analysis`) when the user clicks **Analyze Bias**, updating the status tracker (`update_status(...)`) at each major stage: `dataset_loaded` → `dataset_configured` → `fairness_analysis_completed` → `ai_report_generated` → `export_ready`
-- Rendering the dashboard, then generating the AI explanation, then the fairness verdict banner, then building the Markdown report and PDF, then the AI summary and export centre
-- Rendering the sidebar (`render_sidebar()`) last, so it reflects the final pipeline status
-- Catching and surfacing pipeline errors via `st.error` / `st.exception`
+- Initializing pipeline status tracking (`initialize_state()`) and session state defaults: `df`, `analysis`, `ai_summary`, `pdf_report`
+- Rendering the upload widget, then splitting the rest of the workflow into four tabs:
+
+  | Tab | Contents |
+  |---|---|
+  | 📂 **Dataset** | Dataset overview, target/protected column configuration, and the **Analyze Bias** button — runs `run_analysis()` and stores the result in `st.session_state.analysis` |
+  | 📊 **Dashboard** | Renders `plot_dashboard(analysis)` once `st.session_state.analysis` exists; otherwise shows a prompt to run the analysis first |
+  | 🤖 **AI Report** | If no AI summary exists yet, shows a **Generate AI Report** button that calls the LLM, builds the Markdown report, and renders the PDF — all three are cached in session state so this only needs to run once per analysis. Once generated, renders `render_ai_summary(...)` |
+  | 📦 **Export** | Shows the export centre once `analysis`, `ai_summary`, and `pdf_report` are all present in session state; otherwise prompts to complete the earlier steps |
+
+- Updating the status tracker (`update_status(...)`) at each stage: `dataset_loaded` → `dataset_configured` → `fairness_analysis_completed` → `ai_report_generated` + `export_ready`
+- Rendering the sidebar (`render_sidebar()`) last, so it reflects the current pipeline status regardless of which tab is active
+- Catching and surfacing errors from both the analysis pipeline and AI report generation independently via `st.error` / `st.exception`, so a failure in one tab doesn't block the others
+
+> **Design note:** because the AI report is now generated on demand (via a button, not automatically after analysis), a completed dashboard doesn't imply a completed AI report — check `st.session_state.ai_summary` before assuming the Export tab is populated.
 
 ### `app_state.py`
 A small session-state helper that tracks pipeline progress independently of the analysis data itself:
@@ -60,7 +67,7 @@ A small session-state helper that tracks pipeline progress independently of the 
 
 The five tracked stages are: `dataset_loaded`, `dataset_configured`, `fairness_analysis_completed`, `ai_report_generated`, and `export_ready`.
 
-### `sidebar.py`
+### `UI/sidebar.py`
 Renders the sidebar UI, split into focused sections:
 - `render_project_info()` — title, version caption, and a short description
 - `render_analysis_status()` — reads `app_state.get_status()` and shows a ✅ / ⏳ indicator per pipeline stage
@@ -90,6 +97,8 @@ Coordinates the full fairness workflow via `run_analysis(df, target_col, protect
 10. Computes weighted group outcome rates **after** mitigation
 11. Computes an automated fairness **verdict** via `get_verdict()`, based on the before/after metrics and rates
 12. Returns everything bundled in an `AnalysisResult` (including the `verdict`)
+
+This step happens entirely inside the **Dataset** tab; the resulting `AnalysisResult` is cached in `st.session_state.analysis` so the Dashboard, AI Report, and Export tabs can all read it without re-running the pipeline.
 
 ### `CORE/bias_utils.py`
 Core fairness utility module wrapping pandas, scikit-learn, and AIF360 logic:
@@ -121,30 +130,31 @@ Generates the natural-language fairness explanation using a **local Ollama LLM**
 - Instructs the model to explain the metrics, suggest possible causes, evaluate mitigation effectiveness, note remaining risks, and give recommendations — using only the supplied data, without inventing facts
 - Returns the generated Markdown explanation to the app
 
+This is invoked only when the user clicks **Generate AI Report** in the AI Report tab — it is no longer called automatically after the analysis pipeline finishes.
+
 ### `CORE/report_generator.py`
-Produces the final downloadable fairness report in two stages:
+Produces the final downloadable fairness report in two stages, both triggered from the AI Report tab's **Generate AI Report** button:
 - `build_full_report(analysis, llm_text)` — combines the deterministic analysis results and the LLM explanation into a single Markdown report, including dataset summary, before/after metrics, outcome rates, and the AI interpretation
 - `generate_pdf_report(markdown_report)` — renders that Markdown report into a formatted PDF using **ReportLab**, converting headers (`#`, `##`, `###`) and bullet lists into styled PDF paragraphs, and returns the PDF as raw bytes for download
 
 ### `UI/ui.py`
-Streamlit rendering components for everything except the sidebar and the charts:
+Streamlit rendering components used across the Dataset, AI Report, and Export tabs:
 - `render_dataset_overview(df)` — row/column counts, missing values, dtype breakdown, and a full data preview/inspection expander
 - `render_configuration(df)` — target column and protected attribute selectors, plus the **Analyze Bias** button
-- `render_verdict(analysis)` — displays the automated fairness verdict banner (`analysis.verdict`), color-coded as success / warning / error based on the verdict's `color` field
 - `render_ai_summary(ai_summary)` — displays the generated AI fairness explanation
 - `render_export_card(title, description, status, body_renderer)` — a reusable bordered card component (title, description, status line, then a custom body) used to build the export centre
-- `render_export_center(analysis, ai_summary, pdf_report)` — lays out the export centre as two cards: an **AI Fairness Report** card with a PDF download button, and a **Mitigated Dataset** card with CSV/JSON download buttons
+- `render_export_center(analysis, ai_summary, pdf_report)` — converts `analysis.mitigated_dataset` to a DataFrame once, then lays out the export centre as two cards: an **AI Fairness Report** card with a PDF download button, and a **Mitigated Dataset** card with real CSV/JSON download buttons built from that DataFrame
 - `render_downloads(analysis, ai_summary, pdf_report)` — thin wrapper that calls `render_export_center(...)`
 
-> **⚠️ In progress:** the CSV/JSON buttons inside `render_export_center`'s dataset card currently pass placeholder data (`data=""` and `data="{}"`) rather than the real mitigated dataset from `analysis.mitigated_dataset`. Wire these up to `analysis.mitigated_dataset.convert_to_dataframe()[0]` (as CSV) and its JSON equivalent before shipping the export centre.
+> The fairness verdict banner is **not** rendered here — it now lives in `UI/visualization.py` as part of the Dashboard tab (see below).
 
 ### `UI/visualization.py`
-Renders the Plotly-based fairness dashboard:
+Renders the Plotly-based fairness dashboard, shown in the **📊 Dashboard** tab:
 - `plot_kpi_cards` — DI, SPD, and Consistency metrics with before→after deltas
 - `plot_metrics_comparison` — grouped bar chart comparing all three metrics before vs. after
 - `plot_group_outcomes` — grouped bar chart of positive outcome rates by group, before vs. after
-- `plot_bias_summary` — a simple success/warning banner indicating whether mitigation improved fairness
-- `plot_dashboard(analysis)` — composes all of the above into the full **📊 Fairness Dashboard** section
+- `plot_bias_summary(verdict)` — renders the color-coded fairness **verdict banner** directly from `analysis.verdict` (success / warning / error), replacing the older DI/SPD threshold check that used to live here
+- `plot_dashboard(analysis)` — composes all of the above, pulling `analysis.verdict` and passing it to `plot_bias_summary`
 
 ### `UI/theme.py`
 `load_css()` reads `styles/theme.css` from disk and injects it into the page via `st.markdown(..., unsafe_allow_html=True)`. The path is relative (`styles/theme.css`), so the app must be launched with the project root as the working directory (e.g. `streamlit run app.py` from `fairsight/`).
@@ -206,34 +216,25 @@ The app will open at `http://localhost:8501` in your browser.
 
 ## 🧭 How to Use
 
+FairSight's workflow is split into four tabs, which appear after you upload a dataset: **📂 Dataset**, **📊 Dashboard**, **🤖 AI Report**, and **📦 Export**. Each tab tells you what to do next if a prior step hasn't been completed yet.
+
 **Step 1 — Upload Dataset**
 Upload a `.csv` or `.json` file. Common test datasets include Adult Income, COMPAS Recidivism, and German Credit. The sidebar's **Analysis Status** panel marks *Dataset Loaded* as soon as this succeeds.
 
-**Step 2 — Review the Dataset Overview**
-Inspect row/column counts, missing values, data types, and a preview of the raw data.
-
-**Step 3 — Configure Analysis**
+**Step 2 — Configure & Run Analysis (Dataset tab)**
+- Review the dataset overview: row/column counts, missing values, data types, and a raw preview.
 - Select the **Target Column** (the outcome to predict, e.g. `income`, `loan_approved`). Multi-class or non-binary targets are auto-converted to binary.
 - Select the **Protected Attribute** (e.g. `gender`, `race`, `age`). Continuous or multi-class attributes are auto-converted to binary (median split or majority-vs-others).
+- Click **🚀 Analyze Bias**. This runs the full pipeline: preprocessing, domain detection, `BinaryLabelDataset` construction, DI/SPD/Consistency **before** mitigation, **Reweighing**, the same metrics **after** mitigation, and the automated fairness **verdict**. A success message confirms completion, and the sidebar's *Analysis Complete* indicator lights up.
 
-**Step 4 — Run Analysis**
-Click **🚀 Analyze Bias**. The pipeline will:
-1. Validate and preprocess the data
-2. Detect the dataset's likely business domain
-3. Wrap the data into an AIF360 `BinaryLabelDataset`
-4. Measure **Disparate Impact**, **Statistical Parity Difference**, and **Consistency** before mitigation
-5. Apply **Reweighing** to rebalance instance weights
-6. Re-measure all metrics after mitigation
-7. Compute an automated fairness **verdict** from the before/after metrics
-8. Display the interactive dashboard, generate the local LLM fairness explanation, then show the verdict banner
+**Step 3 — Review the Dashboard (Dashboard tab)**
+Switch to the Dashboard tab to see the KPI cards, the before/after metrics comparison chart, the group outcome-rate chart, and the color-coded **fairness verdict banner** — see [⚖ Fairness Verdict System](#-fairness-verdict-system) below.
 
-Throughout this step, the sidebar's **Analysis Status** panel lights up each stage as it completes: *Configuration Complete → Analysis Complete → Report Generated → Ready to Export*.
+**Step 4 — Generate the AI Report (AI Report tab)**
+Click **🤖 Generate AI Report** to have the local Ollama LLM interpret the metrics, build the full Markdown report, and render the PDF. This is a manual, on-demand step — it doesn't run automatically after the analysis — and only needs to happen once per analysis, since the result is cached in session state.
 
-**Step 5 — Review the Fairness Verdict**
-A color-coded banner summarizes the overall outcome of the mitigation — see [⚖ Fairness Verdict System](#-fairness-verdict-system) below.
-
-**Step 6 — Export Results**
-Use the **📦 Export Centre** to download the full AI fairness report as a **PDF**, and the mitigated dataset as CSV or JSON.
+**Step 5 — Export Results (Export tab)**
+Once the analysis and AI report both exist, use the **📦 Export Centre** to download the full AI fairness report as a **PDF**, and the mitigated dataset as CSV or JSON.
 
 ---
 
@@ -270,7 +271,7 @@ The absolute difference in positive outcome rates between the privileged and unp
 
 ## ⚖ Fairness Verdict System
 
-After computing metrics before and after mitigation, `get_verdict()` in `CORE/bias_utils.py` applies a set of rule-based thresholds to classify the overall outcome into a single, human-readable verdict — shown as a color-coded banner (`render_verdict()` in `UI/ui.py`).
+After computing metrics before and after mitigation, `get_verdict()` in `CORE/bias_utils.py` applies a set of rule-based thresholds to classify the overall outcome into a single, human-readable verdict. It's stored on `analysis.verdict` and rendered as a color-coded banner directly inside the **Dashboard tab**, via `plot_bias_summary(verdict)` in `UI/visualization.py`.
 
 **Inputs considered:**
 - Disparate Impact (DI) after mitigation
@@ -295,7 +296,7 @@ The check for **Fairness Decreased** always runs first as a guard clause — if 
 
 ## 🤖 AI Explanation
 
-After the dashboard renders, FairSight sends the computed fairness metrics — before and after mitigation, including the outcome gap — to a **local LLM served via Ollama** (default: `gemma3:4b`) to generate a plain-language explanation covering what the metrics indicate, likely causes of the observed bias, whether mitigation was effective, remaining risks, and practical recommendations.
+From the **AI Report** tab, clicking **Generate AI Report** sends the computed fairness metrics — before and after mitigation, including the outcome gap — to a **local LLM served via Ollama** (default: `gemma3:4b`) to generate a plain-language explanation covering what the metrics indicate, likely causes of the observed bias, whether mitigation was effective, remaining risks, and practical recommendations.
 
 The prompt embeds explicit interpretation rules so the model can't misread the numbers:
 - DI closer to 1.0, and moving toward 1.0, means improved fairness
@@ -304,18 +305,18 @@ The prompt embeds explicit interpretation rules so the model can't misread the n
 - It is instructed not to claim fairness worsened if DI moved closer to 1 **and** SPD moved closer to 0, unless there is strong contradictory evidence, and to explain rather than paper over any disagreement between metrics
 - It must reason **only from the supplied metrics** and never invent facts, since everything runs locally without external grounding
 
-This keeps the LLM's narrative explanation aligned with the deterministic rule-based verdict from `get_verdict()`, even though the two are computed independently.
+This keeps the LLM's narrative explanation aligned with the deterministic rule-based verdict from `get_verdict()`, even though the two are computed independently and shown in different tabs.
 
 ---
 
 ## 📦 Export Centre
 
-The **Export Centre** (`UI/ui.py`) replaces the old flat row of download buttons with two cards, each built from the shared `render_export_card()` component:
+The **Export Centre** (`UI/ui.py`, shown in the **Export** tab) presents two cards, each built from the shared `render_export_card()` component:
 
 - **📄 AI Fairness Report** — a "Ready" status card with a single **Download PDF** button, producing the full report generated by `CORE/report_generator.py`.
-- **📁 Mitigated Dataset** — a "Ready" status card with **CSV** and **JSON** download buttons for the Reweighing-mitigated dataset.
+- **📁 Mitigated Dataset** — a "Ready" status card with **CSV** and **JSON** download buttons, built from `analysis.mitigated_dataset.convert_to_dataframe()[0]`.
 
-See the note under [`UI/ui.py`](#uiuipy) above — the dataset card's download buttons are not yet wired to real data.
+The Export tab only renders this centre once `st.session_state.analysis`, `ai_summary`, and `pdf_report` are all populated — otherwise it prompts the user to finish the Dataset and AI Report tabs first.
 
 ---
 
@@ -326,8 +327,8 @@ See the note under [`UI/ui.py`](#uiuipy) above — the dataset card's download b
 - Mitigation uses only **Reweighing**. Other strategies (e.g. adversarial debiasing, post-processing) are not yet implemented.
 - Domain detection (`detect_dataset_context`) is a keyword-based heuristic on column names — it is a best-effort classification, not a guarantee.
 - The fairness **verdict** (`get_verdict`) uses fixed, hand-tuned thresholds on DI, SPD, and outcome gap — these are reasonable defaults, not universal or legally binding fairness standards, and should be adapted to your domain's risk tolerance.
-- The Export Centre's mitigated-dataset CSV/JSON downloads currently return placeholder empty data — see the note above.
-- `sidebar.py`'s import path (`from sidebar import render_sidebar` in `app.py`) assumes it sits at the project root; double-check this if you relocate it into `UI/`.
+- Because the AI report is generated on demand rather than automatically, it's possible to leave the AI Report tab without ever clicking **Generate AI Report** — the Export tab will simply stay locked until that happens.
+- All pipeline outputs (`analysis`, `ai_summary`, `pdf_report`) live in `st.session_state`, so switching datasets or re-running analysis overwrites the previous run — there's no history of past analyses within a session.
 - Bias metrics reflect patterns in the **uploaded dataset** — they do not guarantee fairness of a deployed model on unseen data.
 - The AI explanation depends on the quality and availability of the local Ollama model and should be reviewed critically.
 
@@ -337,7 +338,7 @@ See the note under [`UI/ui.py`](#uiuipy) above — the dataset card's download b
 
 | Library | Purpose |
 |---|---|
-| [Streamlit](https://streamlit.io) | Web UI framework |
+| [Streamlit](https://streamlit.io) | Web UI framework (tabs, forms, session state) |
 | [AIF360](https://github.com/Trusted-AI/AIF360) | Fairness metrics and mitigation algorithms |
 | [Scikit-learn](https://scikit-learn.org) | Label encoding utilities |
 | [Pandas](https://pandas.pydata.org) | Data manipulation |
