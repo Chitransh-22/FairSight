@@ -1,7 +1,11 @@
 streamlit
 pandas
+numpy
 scikit-learn
 matplotlib
+plotly
 aif360
+reportlab
+langchain
 langchain-ollama
-langchain-core
+ollama

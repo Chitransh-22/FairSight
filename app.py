@@ -3,238 +3,191 @@ from CORE.dataset_loader import render_upload
 from UI.visualization import plot_dashboard
 from CORE.llm_utils import get_ai_explanation
 from CORE.analysis_pipeline import run_analysis
-from UI.ui import (render_dataset_overview,render_configuration, 
-                   render_ai_summary, render_downloads)
-from CORE.report_generator import (build_full_report, generate_pdf_report)
+from UI.ui import (
+    render_dataset_overview,
+    render_configuration,
+    render_ai_summary,
+    render_downloads,
+)
+from CORE.report_generator import build_full_report, generate_pdf_report
 from UI.theme import load_css
-from app_state import (initialize_state, update_status)
+from app_state import initialize_state, update_status
 from UI.sidebar import render_sidebar
+from UI.tabs import (
+    render_hero,
+    render_workflow_progress,
+    render_tab_empty_state,
+    get_tab_labels,
+)
 
 st.set_page_config(
-    page_title="AI Bias Detection System",
+    page_title="FairSight — AI Bias Detection",
     page_icon="⚖️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 load_css()
-
-st.title("⚖️ AI Bias Detection System")
-
-st.markdown("""
-Detect, analyze and mitigate bias in machine learning datasets using
-AIF360, Reweighing and Local LLM-powered fairness explanations.
-""")
-
-st.divider()
+render_hero()
 
 initialize_state()
 
-defaults = {
-
+for key, value in {
     "df": None,
     "analysis": None,
     "ai_summary": None,
     "pdf_report": None,
-
-}
-
-for key, value in defaults.items():
+    "upload_file_id": None,
+}.items():
     st.session_state.setdefault(key, value)
 
-"""
+render_workflow_progress()
 
-                    RUN ANALYSIS
-                         │
-                         ▼
-                  run_analysis()
-                         │
-                         ▼
-                session_state.analysis
-                         │
-              ┌──────────┼──────────┐
-              ▼          ▼          ▼
-          Dashboard   AI Report   Export
-              │          │          │
-              │          ▼          │
-              │        Ollama       │
-              │          │          │
-              ▼          ▼          ▼
-           Results    Explanation   Files
+dataset_tab, dashboard_tab, ai_tab, export_tab = st.tabs(get_tab_labels())
 
-"""
+# ── Dataset ──────────────────────────────────────────────────────────
 
-df = render_upload()
+with dataset_tab:
+    df = render_upload()
 
-if df is not None:
-
-    update_status("dataset_loaded")
-
-    dataset_tab, dashboard_tab, ai_tab, export_tab = st.tabs(
-        [
-            "📂 Dataset",
-            "📊 Dashboard",
-            "🤖 AI Report",
-            "📦 Export"
-        ]
-    )
-
-    # =====================================================
-    # DATASET TAB
-    # =====================================================
-
-    with dataset_tab:
-
+    if df is not None:
+        update_status("dataset_loaded")
         render_dataset_overview(df)
-
         target_col, protected_col, analyze = render_configuration(df)
 
         if analyze:
-
             update_status("dataset_configured")
+            try:
+                analysis = run_analysis(df, target_col, protected_col)
+                st.session_state.analysis = analysis
+                update_status("fairness_analysis_completed")
+                st.success("✅ Fairness analysis completed — switch to the **Dashboard** tab to review results.")
+            except Exception as e:
+                st.error("❌ Analysis failed.")
+                st.exception(e)
+    else:
+        render_tab_empty_state(
+            icon="📂",
+            title="Upload a dataset to begin",
+            message="Drop a CSV or JSON file above to start your fairness audit. "
+            "Common test datasets include Adult Income, COMPAS, and German Credit.",
+            action_hint="Supported formats: .csv · .json",
+        )
+
+# ── Dashboard ────────────────────────────────────────────────────────
+
+with dashboard_tab:
+    if st.session_state.analysis is not None:
+        plot_dashboard(st.session_state.analysis)
+    else:
+        render_tab_empty_state(
+            icon="📊",
+            title="Dashboard not ready yet",
+            message="Configure your target and protected columns in the Dataset tab, "
+            "then click Analyze Bias to generate fairness metrics and charts.",
+            action_hint="← Go to the Dataset tab to run analysis",
+            variant="info",
+        )
+
+# ── AI Report ────────────────────────────────────────────────────────
+
+with ai_tab:
+
+    if st.session_state.analysis is None:
+
+        render_tab_empty_state(
+            icon="🤖",
+            title="AI report requires analysis",
+            message="Complete the fairness analysis in the Dataset tab first.",
+            action_hint="← Complete analysis in the Dataset tab",
+            variant="info",
+        )
+
+    elif st.session_state.ai_summary is None:
+
+        st.header("🤖 AI Fairness Report")
+
+        st.write(
+            "Generate a plain-language explanation of the fairness analysis "
+            "using the local Ollama LLM."
+        )
+
+        if st.button(
+            "🤖 Generate AI Report",
+            type="primary",
+            width="stretch"
+        ):
 
             try:
 
-                analysis = run_analysis(
-                    df,
-                    target_col,
-                    protected_col
-                )
+                with st.spinner("Generating AI fairness explanation..."):
 
-                st.session_state.analysis = analysis
+                    llm_response = get_ai_explanation(
+                        st.session_state.analysis
+                    )
 
-                update_status(
-                    "fairness_analysis_completed"
-                )
+                    ai_summary = build_full_report(
+                        st.session_state.analysis,
+                        llm_response
+                    )
 
-                st.success(
-                    "✅ Fairness analysis completed successfully."
-                )
+                    pdf_report = generate_pdf_report(
+                        ai_summary
+                    )
+
+                    st.session_state.ai_summary = ai_summary
+                    st.session_state.pdf_report = pdf_report
+
+                    update_status("ai_report_generated")
+                    update_status("export_ready")
+
+                st.rerun()
 
             except Exception as e:
 
-                st.error("❌ Analysis failed.")
-
+                st.error("❌ AI report generation failed.")
                 st.exception(e)
 
+    else:
 
-    # =====================================================
-    # DASHBOARD TAB
-    # =====================================================
+        render_ai_summary(
+            st.session_state.ai_summary
+        )
 
-    with dashboard_tab:
+# ── Export ───────────────────────────────────────────────────────────
 
-        if st.session_state.analysis is not None:
+with export_tab:
 
-            plot_dashboard(
-                st.session_state.analysis
-            )
+    analysis = st.session_state.analysis
+    ai_summary = st.session_state.ai_summary
+    pdf_report = st.session_state.pdf_report
 
-        else:
+    if (
+        analysis is not None
+        and ai_summary is not None
+        and pdf_report is not None
+    ):
 
-            st.info(
-                "👈 Run the analysis from the Dataset tab "
-                "to view the fairness dashboard."
-            )
+        render_downloads(
+            analysis,
+            ai_summary,
+            pdf_report,
+        )
 
+    else:
 
-    # =====================================================
-    # AI REPORT TAB
-    # =====================================================
+        missing = []
 
-    with ai_tab:
+        if analysis is None:
+            missing.append("fairness analysis")
 
-        if st.session_state.analysis is None:
+        if ai_summary is None:
+            missing.append("AI report")
 
-            st.info(
-                "👈 Run the analysis first."
-            )
+        if pdf_report is None:
+            missing.append("PDF report")
 
-        else:
-
-            if st.session_state.ai_summary is None:
-
-                st.info(
-                    "The fairness analysis is ready. "
-                    "Generate the AI explanation below."
-                )
-
-                generate_ai = st.button(
-                    "🤖 Generate AI Report",
-                    type="primary",
-                    width="stretch"
-                )
-
-                if generate_ai:
-
-                    try:
-
-                        llm_response = get_ai_explanation(
-                            st.session_state.analysis
-                        )
-
-                        ai_summary = build_full_report(
-                            st.session_state.analysis,
-                            llm_response
-                        )
-
-                        pdf_report = generate_pdf_report(
-                            ai_summary
-                        )
-
-                        st.session_state.ai_summary = ai_summary
-
-                        st.session_state.pdf_report = pdf_report
-
-                        update_status(
-                            "ai_report_generated"
-                        )
-
-                        update_status(
-                            "export_ready"
-                        )
-
-                        st.rerun()
-
-                    except Exception as e:
-
-                        st.error(
-                            "❌ AI report generation failed."
-                        )
-
-                        st.exception(e)
-
-            else:
-
-                render_ai_summary(
-                    st.session_state.ai_summary
-                )
-
-
-    # =====================================================
-    # EXPORT TAB
-    # =====================================================
-
-    with export_tab:
-
-        if (
-            st.session_state.analysis is not None
-            and st.session_state.ai_summary is not None
-            and st.session_state.pdf_report is not None
-        ):
-
-            render_downloads(
-                st.session_state.analysis,
-                st.session_state.ai_summary,
-                st.session_state.pdf_report
-            )
-
-        else:
-
-            st.info(
-                "👈 Complete the analysis and AI report "
-                "before exporting."
-            )
-
-
-render_sidebar()
+        st.info(
+            "Complete the following before exporting: "
+            + ", ".join(missing)
+        )

@@ -1,6 +1,6 @@
 /* ============================================================
    FairSight Theme
-   Version : 1.0
+   Version : 2.0 — Tab-first workflow UX
    Author  : Chitransh Panchal
 ============================================================ */
 
@@ -23,13 +23,11 @@ body,
 ------------------------------------------------------------ */
 
 .stApp {
-
     background:
         radial-gradient(circle at top,
             #1d2340 0%,
             #0E1117 55%,
             #0B0E14 100%);
-
 }
 
 
@@ -37,20 +35,300 @@ body,
    Headers
 ------------------------------------------------------------ */
 
-h1,h2,h3{
-
-    font-weight:700;
-
-    letter-spacing:.3px;
-
-    color:white;
-
+h1, h2, h3 {
+    font-weight: 700;
+    letter-spacing: .3px;
+    color: white;
 }
 
-h4,h5,h6{
+h4, h5, h6 {
+    color: #D7E2F0;
+}
 
-    color:#D7E2F0;
 
+/* ------------------------------------------------------------
+   Hero Banner
+------------------------------------------------------------ */
+
+.fs-hero {
+    background: linear-gradient(135deg, rgba(79, 124, 255, 0.12) 0%, rgba(24, 29, 40, 0.6) 100%);
+    border: 1px solid rgba(79, 124, 255, 0.18);
+    border-radius: 20px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.25rem;
+}
+
+.fs-hero-content {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.fs-hero-icon {
+    font-size: 2.75rem;
+    line-height: 1;
+    filter: drop-shadow(0 4px 12px rgba(79, 124, 255, 0.3));
+}
+
+.fs-hero-title {
+    font-size: 1.75rem !important;
+    font-weight: 700 !important;
+    margin: 0 0 0.35rem 0 !important;
+    background: linear-gradient(90deg, #ffffff 0%, #a8c0ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.fs-hero-subtitle {
+    color: #9BA8C0;
+    font-size: 0.95rem;
+    margin: 0;
+    line-height: 1.5;
+    max-width: 680px;
+}
+
+
+/* ------------------------------------------------------------
+   Workflow Stepper
+------------------------------------------------------------ */
+
+.fs-workflow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 1rem 1.5rem;
+    margin-bottom: 0.5rem;
+    background: rgba(24, 29, 40, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+}
+
+.fs-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 72px;
+    position: relative;
+}
+
+.fs-step-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    transition: all 0.3s ease;
+}
+
+.fs-step-pending .fs-step-circle {
+    background: #1a2030;
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    color: #6B7A94;
+}
+
+.fs-step-active .fs-step-circle {
+    background: linear-gradient(135deg, #4F7CFF 0%, #6B9AFF 100%);
+    border: 2px solid #4F7CFF;
+    color: white;
+    box-shadow: 0 0 20px rgba(79, 124, 255, 0.45);
+    animation: fs-pulse 2s ease-in-out infinite;
+}
+
+.fs-step-completed .fs-step-circle {
+    background: rgba(46, 204, 113, 0.15);
+    border: 2px solid #2ECC71;
+    color: #2ECC71;
+}
+
+.fs-step-icon {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.fs-step-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #8B9AB5;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.fs-step-active .fs-step-label {
+    color: #4F7CFF;
+}
+
+.fs-step-completed .fs-step-label {
+    color: #2ECC71;
+}
+
+.fs-step-line {
+    flex: 1;
+    height: 2px;
+    min-width: 24px;
+    max-width: 80px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 0 0.25rem;
+    margin-bottom: 1.6rem;
+    border-radius: 2px;
+    transition: background 0.3s ease;
+}
+
+.fs-step-line-done {
+    background: linear-gradient(90deg, #2ECC71, rgba(46, 204, 113, 0.3));
+}
+
+@keyframes fs-pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(79, 124, 255, 0.45); }
+    50%      { box-shadow: 0 0 28px rgba(79, 124, 255, 0.65); }
+}
+
+
+/* ------------------------------------------------------------
+   Tabs
+------------------------------------------------------------ */
+
+div[data-testid="stTabs"] {
+    margin-top: 0.5rem;
+}
+
+div[data-testid="stTabs"] > div:first-child {
+    background: rgba(17, 23, 34, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 6px;
+    gap: 4px;
+}
+
+div[data-testid="stTabs"] button[data-baseweb="tab"] {
+    border-radius: 12px !important;
+    padding: 0.65rem 1.25rem !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    color: #8B9AB5 !important;
+    background: transparent !important;
+    border: none !important;
+    transition: all 0.25s ease !important;
+}
+
+div[data-testid="stTabs"] button[data-baseweb="tab"]:hover {
+    color: #D7E2F0 !important;
+    background: rgba(79, 124, 255, 0.08) !important;
+}
+
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] {
+    color: white !important;
+    background: linear-gradient(135deg, rgba(79, 124, 255, 0.25) 0%, rgba(79, 124, 255, 0.12) 100%) !important;
+    border: 1px solid rgba(79, 124, 255, 0.35) !important;
+    box-shadow: 0 4px 16px rgba(79, 124, 255, 0.15) !important;
+}
+
+div[data-testid="stTabs"] [data-baseweb="tab-highlight"] {
+    display: none !important;
+}
+
+div[data-testid="stTabs"] [data-baseweb="tab-border"] {
+    display: none !important;
+}
+
+div[data-testid="stTabs"] > div:last-child {
+    padding-top: 1.25rem;
+}
+
+
+/* ------------------------------------------------------------
+   Empty State Cards
+------------------------------------------------------------ */
+
+.fs-empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    border-radius: 20px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    background: rgba(24, 29, 40, 0.4);
+    margin: 1.5rem 0;
+}
+
+.fs-empty-info {
+    border-color: rgba(79, 124, 255, 0.25);
+    background: rgba(79, 124, 255, 0.04);
+}
+
+.fs-empty-warning {
+    border-color: rgba(255, 193, 7, 0.25);
+    background: rgba(255, 193, 7, 0.04);
+}
+
+.fs-empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.85;
+}
+
+.fs-empty-title {
+    color: #E8EDF5 !important;
+    font-size: 1.35rem !important;
+    font-weight: 700 !important;
+    margin: 0 0 0.75rem 0 !important;
+}
+
+.fs-empty-message {
+    color: #8B9AB5;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-width: 480px;
+    margin: 0 auto 0.75rem auto;
+}
+
+.fs-empty-action {
+    color: #4F7CFF;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 0.5rem 0 0 0;
+}
+
+
+/* ------------------------------------------------------------
+   Section Cards
+------------------------------------------------------------ */
+
+.fs-section-card {
+    background: rgba(24, 29, 40, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 18px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.fs-section-card:hover {
+    border-color: rgba(79, 124, 255, 0.15);
+}
+
+
+/* ------------------------------------------------------------
+   Upload Zone
+------------------------------------------------------------ */
+
+div[data-testid="stFileUploader"] {
+    background: rgba(24, 29, 40, 0.45);
+    border: 2px dashed rgba(79, 124, 255, 0.25);
+    border-radius: 18px;
+    padding: 0.5rem;
+    transition: all 0.25s ease;
+}
+
+div[data-testid="stFileUploader"]:hover {
+    border-color: rgba(79, 124, 255, 0.5);
+    background: rgba(79, 124, 255, 0.04);
+}
+
+div[data-testid="stFileUploader"] section {
+    padding: 1.5rem;
 }
 
 
@@ -58,12 +336,9 @@ h4,h5,h6{
    Horizontal Divider
 ------------------------------------------------------------ */
 
-hr{
-
-    border:none;
-
-    border-top:1px solid rgba(255,255,255,.08);
-
+hr {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, .08);
 }
 
 
@@ -71,33 +346,20 @@ hr{
    Buttons
 ------------------------------------------------------------ */
 
-.stButton > button{
-
-    width:100%;
-
-    border-radius:14px;
-
-    border:none;
-
-    padding:.75rem;
-
-    font-weight:600;
-
-    transition:.25s ease;
-
-    background:#4F7CFF;
-
-    color:white;
-
+.stButton > button {
+    width: 100%;
+    border-radius: 14px;
+    border: none;
+    padding: .75rem;
+    font-weight: 600;
+    transition: .25s ease;
+    background: #4F7CFF;
+    color: white;
 }
 
-
-.stButton > button:hover{
-
-    transform:translateY(-2px);
-
-    box-shadow:0 12px 30px rgba(79,124,255,.35);
-
+.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(79, 124, 255, .35);
 }
 
 
@@ -105,29 +367,18 @@ hr{
    Download Buttons
 ------------------------------------------------------------ */
 
-.stDownloadButton > button{
-
-    width:100%;
-
-    border-radius:14px;
-
-    border:1px solid rgba(255,255,255,.08);
-
-    background:#181D28;
-
-    color:white;
-
-    transition:.25s;
-
+.stDownloadButton > button {
+    width: 100%;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    background: #181D28;
+    color: white;
+    transition: .25s;
 }
 
-
-.stDownloadButton > button:hover{
-
-    background:#222A39;
-
-    border-color:#4F7CFF;
-
+.stDownloadButton > button:hover {
+    background: #222A39;
+    border-color: #4F7CFF;
 }
 
 
@@ -135,10 +386,8 @@ hr{
    Select Boxes
 ------------------------------------------------------------ */
 
-div[data-baseweb="select"]{
-
-    border-radius:12px;
-
+div[data-baseweb="select"] {
+    border-radius: 12px;
 }
 
 
@@ -146,27 +395,17 @@ div[data-baseweb="select"]{
    Metrics
 ------------------------------------------------------------ */
 
-div[data-testid="metric-container"]{
-
-    background:#181D28;
-
-    border:1px solid rgba(255,255,255,.05);
-
-    border-radius:18px;
-
-    padding:15px;
-
-    transition:.25s;
-
+div[data-testid="metric-container"] {
+    background: #181D28;
+    border: 1px solid rgba(255, 255, 255, .05);
+    border-radius: 18px;
+    padding: 15px;
+    transition: .25s;
 }
 
-
-div[data-testid="metric-container"]:hover{
-
-    border-color:#4F7CFF;
-
-    transform:translateY(-3px);
-
+div[data-testid="metric-container"]:hover {
+    border-color: #4F7CFF;
+    transform: translateY(-3px);
 }
 
 
@@ -174,10 +413,19 @@ div[data-testid="metric-container"]:hover{
    Containers
 ------------------------------------------------------------ */
 
-div[data-testid="stVerticalBlock"]{
+div[data-testid="stVerticalBlock"] {
+    border-radius: 18px;
+}
 
-    border-radius:18px;
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    background: rgba(24, 29, 40, 0.55) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 18px !important;
+    transition: border-color 0.25s ease, transform 0.25s ease;
+}
 
+div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    border-color: rgba(79, 124, 255, 0.2) !important;
 }
 
 
@@ -185,14 +433,11 @@ div[data-testid="stVerticalBlock"]{
    Expanders
 ------------------------------------------------------------ */
 
-details{
-
-    border-radius:15px;
-
-    overflow:hidden;
-
-    border:1px solid rgba(255,255,255,.05);
-
+details {
+    border-radius: 15px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .05);
+    background: rgba(24, 29, 40, 0.35);
 }
 
 
@@ -200,12 +445,9 @@ details{
    Dataframe
 ------------------------------------------------------------ */
 
-div[data-testid="stDataFrame"]{
-
-    border-radius:16px;
-
-    overflow:hidden;
-
+div[data-testid="stDataFrame"] {
+    border-radius: 16px;
+    overflow: hidden;
 }
 
 
@@ -213,23 +455,54 @@ div[data-testid="stDataFrame"]{
    Sidebar
 ------------------------------------------------------------ */
 
-section[data-testid="stSidebar"]{
+section[data-testid="stSidebar"] {
+    background: #111722;
+    border-right: 1px solid rgba(255, 255, 255, .06);
+}
 
-    background:#111722;
+.fs-sidebar-step {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 0;
+    font-size: 0.85rem;
+    color: #6B7A94;
+    transition: color 0.2s ease;
+}
 
-    border-right:1px solid rgba(255,255,255,.06);
+.fs-sidebar-step-active {
+    color: #4F7CFF;
+    font-weight: 600;
+}
 
+.fs-sidebar-step-done {
+    color: #2ECC71;
 }
 
 
 /* ------------------------------------------------------------
-   Success
+   Notifications / Alerts
 ------------------------------------------------------------ */
 
-div[data-baseweb="notification"]{
+div[data-baseweb="notification"] {
+    border-radius: 16px;
+}
 
-    border-radius:16px;
+div[data-testid="stAlert"] {
+    border-radius: 14px;
+}
 
+
+/* ------------------------------------------------------------
+   AI Report Panel
+------------------------------------------------------------ */
+
+.fs-ai-report {
+    background: rgba(24, 29, 40, 0.6);
+    border: 1px solid rgba(79, 124, 255, 0.15);
+    border-radius: 18px;
+    padding: 1.5rem 2rem;
+    line-height: 1.7;
 }
 
 
@@ -237,22 +510,15 @@ div[data-baseweb="notification"]{
    Scrollbar
 ------------------------------------------------------------ */
 
-::-webkit-scrollbar{
-
-    width:10px;
-
+::-webkit-scrollbar {
+    width: 10px;
 }
 
-::-webkit-scrollbar-thumb{
-
-    background:#394B63;
-
-    border-radius:50px;
-
+::-webkit-scrollbar-thumb {
+    background: #394B63;
+    border-radius: 50px;
 }
 
-::-webkit-scrollbar-thumb:hover{
-
-    background:#4F7CFF;
-
+::-webkit-scrollbar-thumb:hover {
+    background: #4F7CFF;
 }
