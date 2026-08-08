@@ -42,6 +42,28 @@ defaults = {
 for key, value in defaults.items():
     st.session_state.setdefault(key, value)
 
+"""
+
+                    RUN ANALYSIS
+                         │
+                         ▼
+                  run_analysis()
+                         │
+                         ▼
+                session_state.analysis
+                         │
+              ┌──────────┼──────────┐
+              ▼          ▼          ▼
+          Dashboard   AI Report   Export
+              │          │          │
+              │          ▼          │
+              │        Ollama       │
+              │          │          │
+              ▼          ▼          ▼
+           Results    Explanation   Files
+
+"""
+
 df = render_upload()
 
 if df is not None:
